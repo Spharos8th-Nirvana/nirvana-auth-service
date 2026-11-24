@@ -1,6 +1,13 @@
+server:
+  port: ${SERVER_PORT:8081}
+
 spring:
   application:
-    name: spring-service-template
+    name: auth-service
+  datasource:
+    url: jdbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:13306}/nirvana_auth
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD}
   profiles:
     default: local
   cloud:
