@@ -10,5 +10,5 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, Long> 
 
     Optional<UserAccount> findByUuid(String uuid);
 
-    boolean existsByLoginIdActive(String loginId);
+    boolean existsByEmailActive(String email);
 }
