@@ -31,10 +31,6 @@ public class UserAccount {
     private String uuid;
 
     @Getter
-    @Column(length = 50)
-    private String loginId;
-
-    @Getter
     @Column(nullable = false)
     private String email;
 
@@ -57,12 +53,11 @@ public class UserAccount {
     @Column(nullable = false)
     private LocalDateTime requiredTermsAgreedAt;
 
-    @Column(insertable = false, updatable = false, length = 50)
-    private String loginIdActive;
+    @Column(insertable = false, updatable = false, length = 255)
+    private String emailActive;
 
     @Builder(builderMethodName = "generalBuilder")
     public static UserAccount general(
-            String loginId,
             String email,
             String passwordHash,
             String phone,
@@ -70,7 +65,6 @@ public class UserAccount {
     ) {
         UserAccount account = new UserAccount();
         account.uuid = UUID.randomUUID().toString();
-        account.loginId = Objects.requireNonNull(loginId, "loginId");
         account.email = Objects.requireNonNull(email, "email");
         account.passwordHash = Objects.requireNonNull(passwordHash, "passwordHash");
         account.phone = Objects.requireNonNull(phone, "phone");

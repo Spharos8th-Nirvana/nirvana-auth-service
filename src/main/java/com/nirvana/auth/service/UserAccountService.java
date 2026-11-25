@@ -8,7 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.nirvana.auth.domain.UserAccount;
 import com.nirvana.auth.repository.UserAccountRepository;
-import com.nirvana.auth.dto.AccountDetails;
+import com.nirvana.auth.dto.account.AccountDetails;
 
 import lombok.RequiredArgsConstructor;
 
@@ -20,10 +20,9 @@ public class UserAccountService {
     private final UserAccountRepository accounts;
 
     @Transactional
-    public String createGeneralAccount(String loginId, String email, String passwordHash,
+    public String createGeneralAccount(String email, String passwordHash,
                                        String phone, LocalDateTime agreedAt) {
         UserAccount account = UserAccount.generalBuilder()
-                .loginId(loginId)
                 .email(email)
                 .passwordHash(passwordHash)
                 .phone(phone)
@@ -36,11 +35,11 @@ public class UserAccountService {
     public Optional<AccountDetails> findAccount(String uuid) {
         return accounts.findByUuid(uuid)
                 .map(account -> new AccountDetails(
-                        account.getUuid(), account.getLoginId(), account.getEmail(), account.getPhone()
+                        account.getUuid(), account.getEmail(), account.getPhone()
                 ));
     }
 
-    public boolean isLoginIdAvailable(String loginId) {
-        return !accounts.existsByLoginIdActive(loginId);
+    public boolean isEmailAvailable(String email) {
+        return !accounts.existsByEmailActive(email);
     }
 }
