@@ -21,7 +21,7 @@ DB 프로젝트의 `DB/nirvana-app` 폴더에서 `docker compose -f docker-compo
 - macOS와 Linux에서는 `./gradlew bootRun`, Windows PowerShell에서는 `.\gradlew.bat bootRun`으로 실행합니다.
 - 기본 `local` 프로필은 Config Server 없이 시작하며 Swagger UI를 활성화합니다. 다른 프로필에서는 API 문서와 Swagger UI가 기본으로 비활성화됩니다.
 - Config Server 설정을 가져오려면 `SPRING_PROFILES_ACTIVE=config-server`를 설정합니다. 로컬 Swagger UI도 함께 쓰려면 `local,config-server`를 지정합니다. `CONFIG_SERVER_URL`의 기본값은 `http://localhost:8888`입니다.
-- JAR 빌드는 `./gradlew bootJar`로 확인합니다. GitHub Actions도 `develop`과 `main` 대상 PR에서 이 빌드를 실행합니다.
+- JAR 빌드는 `./gradlew bootJar`로 확인합니다. GitHub Actions는 `develop`과 `main` 대상 PR에서 `build`로 테스트와 문서 생성까지 검증합니다.
 
 개발과 기여 방법은 [CONTRIBUTING.md](CONTRIBUTING.md)를 참고하세요.
 
@@ -43,3 +43,8 @@ Google 계정의 2단계 인증을 활성화하고 [앱 비밀번호](https://su
 인증번호는 발송 후 5분 동안 유효하며, 인증 증빙은 같은 만료 시각을 사용합니다. 로컬 테스트에서는 발송 후 1분이 지나야 재발송할 수 있고, 코드 확인에 5회 실패하면 새 코드를 받아야 합니다. 인증 상태는 Auth 프로세스 메모리에 저장되어 재시작하면 사라집니다. 로컬 Auth는 Gmail SMTP를 사용해 테스트 메일을 실제 주소로 보냅니다. 필수 약관에 동의한 뒤 발송·검증을 진행합니다. `POST /signup`에는 이메일, 인증 증빙(`verificationToken`), 나머지 가입 정보 및 필수 약관 동의 여부를 전달합니다. 가입 시 이메일 중복을 다시 확인합니다. 배포용 Notification 발송과 Member 프로필 연동은 후속 단계입니다.
 
 입력값 검증에 실패하면 `400 INVALID_REQUEST`와 `error.details` 배열을 반환합니다. 각 항목의 `field`는 요청 JSON의 필드 이름이고, `code`는 검증 제약 이름, `message`는 표시할 문구입니다. 예를 들어 필수 약관에 동의하지 않으면 `requiredTermsAgreed`에 `AssertTrue` 오류가 내려갑니다.
+
+## API 문서
+
+- `local,gmail-signup` 프로필로 실행하면 Swagger UI에서 이메일 인증과 회원가입 API를 확인할 수 있습니다. OpenAPI JSON은 `/v3/api-docs`에서 제공합니다.
+- `./gradlew restDocs` 또는 Windows에서 `.\gradlew.bat restDocs`를 실행하면 테스트를 거쳐 `build/docs/auth-api.md`를 생성합니다. 요청·응답 예시는 테스트 입력만 사용합니다.
