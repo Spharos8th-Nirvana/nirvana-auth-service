@@ -8,14 +8,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RequestMapping;
 
-@RequestMapping("/signup/email-verification")
 interface SignupEmailVerificationApi {
     @Operation(summary = "가입 이메일 인증번호 발송")
     @ApiResponses({
@@ -32,9 +25,7 @@ interface SignupEmailVerificationApi {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "INTERNAL_SERVER_ERROR",
                 content = @Content(mediaType = "application/json", schema = @Schema(implementation = SignupErrorResponse.class)))
     })
-    @PostMapping(path = "/send")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    void send(@Valid @RequestBody SendSignupEmailRequest request);
+    void send(SendSignupEmailRequest request);
 
     @Operation(summary = "가입 이메일 인증번호 검증")
     @ApiResponses({
@@ -45,6 +36,5 @@ interface SignupEmailVerificationApi {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "INTERNAL_SERVER_ERROR",
                 content = @Content(mediaType = "application/json", schema = @Schema(implementation = SignupErrorResponse.class)))
     })
-    @PostMapping(path = "/verify", produces = "application/json")
-    ApiResponse<VerifySignupEmailResponse> verify(@Valid @RequestBody VerifySignupEmailRequest request);
+    ApiResponse<VerifySignupEmailResponse> verify(VerifySignupEmailRequest request);
 }

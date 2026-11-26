@@ -7,11 +7,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
 
 interface EmailSignupApi {
     @Operation(summary = "이메일 회원가입")
@@ -25,7 +20,5 @@ interface EmailSignupApi {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "INTERNAL_SERVER_ERROR",
                 content = @Content(mediaType = "application/json", schema = @Schema(implementation = SignupErrorResponse.class)))
     })
-    @PostMapping(path = "/signup", produces = "application/json")
-    @ResponseStatus(HttpStatus.CREATED)
-    ApiResponse<SignupResponse> signup(@Valid @RequestBody SignupRequest request);
+    ApiResponse<SignupResponse> signup(SignupRequest request);
 }
