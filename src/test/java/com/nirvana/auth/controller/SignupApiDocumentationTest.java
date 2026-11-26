@@ -12,7 +12,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.nirvana.auth.dto.signup.SignupResponse;
 import com.nirvana.auth.exception.EmailVerificationException;
 import com.nirvana.auth.exception.EmailVerificationException.Reason;
 import com.nirvana.auth.service.SignupEmailVerificationService;
@@ -40,6 +39,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 @ActiveProfiles({"local", "gmail-signup"})
 @SpringBootTest(properties = {
+    "auth.outbox.publishing-enabled=false",
     "spring.mail.username=sender@example.invalid",
     "spring.mail.password=unused-test-password",
     "spring.autoconfigure.exclude=org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration,"
@@ -66,7 +66,6 @@ class SignupApiDocumentationTest {
               "password": "ExampleSignup1234!",
               "passwordConfirmation": "ExampleSignup1234!",
               "name": "테스트 회원",
-              "nickname": "예시 닉네임",
               "phone": "01000000000",
               "requiredTermsAgreed": true,
               "verificationToken": "5d6acd75-b9bd-4dbc-850a-247fc5c0b549"
@@ -155,7 +154,7 @@ class SignupApiDocumentationTest {
     @Test
     void documentsSuccessfulSignup() throws Exception {
         when(accounts.isEmailAvailable(EMAIL)).thenReturn(true);
-        doReturn(new SignupResponse(ACCOUNT_UUID)).when(signup).signup(any());
+        doReturn(ACCOUNT_UUID).when(signup).signup(any());
 
         submit(SIGNUP, SIGNUP_BODY).andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.userUuid").value(ACCOUNT_UUID))

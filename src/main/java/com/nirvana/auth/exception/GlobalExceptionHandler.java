@@ -93,6 +93,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return switch (field) {
             case "passwordLengthValid", "passwordWithinBcryptLimit" -> "password";
             case "passwordConfirmed" -> "passwordConfirmation";
+            case "countryCodeValid" -> "countryCode";
             default -> field;
         };
     }

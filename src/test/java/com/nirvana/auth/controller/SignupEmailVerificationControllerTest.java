@@ -106,7 +106,6 @@ class SignupEmailVerificationControllerTest {
                   "password": "TestSignup1234!",
                   "passwordConfirmation": "DifferentSignup1234!",
                   "name": "Tester",
-                  "nickname": "Tester",
                   "phone": "01012345678",
                   "requiredTermsAgreed": false,
                   "verificationToken": "5d6acd75-b9bd-4dbc-850a-247fc5c0b549"

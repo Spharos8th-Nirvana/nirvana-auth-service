@@ -1,51 +1,38 @@
 package com.nirvana.auth.service;
 
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-
+import com.nirvana.auth.dto.signup.SignupCommand;
+import com.nirvana.auth.exception.EmailAlreadyUsedException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Profile;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import com.nirvana.auth.dto.signup.SignupRequest;
-import com.nirvana.auth.dto.signup.SignupResponse;
-import com.nirvana.auth.exception.EmailAlreadyUsedException;
-
-import lombok.RequiredArgsConstructor;
 
 @Service
 @Profile("local & gmail-signup")
 @RequiredArgsConstructor
 public class SignupService {
-
     private final SignupEmailVerificationService emailVerification;
     private final UserAccountService accounts;
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     public void sendEmailCode(String email) {
-        if (!accounts.isEmailAvailable(email)) {
-            throw new EmailAlreadyUsedException();
-        }
+        requireAvailableEmail(email);
         emailVerification.sendCode(email);
     }
 
-    public SignupResponse signup(SignupRequest request) {
-        if (!accounts.isEmailAvailable(request.email())) {
-            throw new EmailAlreadyUsedException();
-        }
-
-        String passwordHash = passwordEncoder.encode(request.password());
+    public String signup(SignupCommand command) {
+        requireAvailableEmail(command.email()); //중복 이메일 검사
         try {
-            String userUuid = emailVerification.withVerifiedEmail(request.email(), request.verificationToken(),
-                    () -> accounts.createGeneralAccount(request.email(), passwordHash,
-                            request.phone(), LocalDateTime.now(ZoneOffset.UTC)));
-            return new SignupResponse(userUuid);
+            return emailVerification.withVerifiedEmail(command.email(), command.verificationToken(),
+                    () -> accounts.register(command));  //이메일 검증
         } catch (DataIntegrityViolationException exception) {
-            if (!accounts.isEmailAvailable(request.email())) {
-                throw new EmailAlreadyUsedException();
-            }
+            requireAvailableEmail(command.email());
             throw exception;
+        }
+    }
+
+    private void requireAvailableEmail(String email) {
+        if (!accounts.isEmailAvailable(email)) {
+            throw new EmailAlreadyUsedException();
         }
     }
 }

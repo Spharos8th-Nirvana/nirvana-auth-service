@@ -33,7 +33,6 @@ class SignupRequestTest {
               "password": "Valid passphrase1!",
               "passwordConfirmation": "Valid passphrase1!",
               "name": "Example",
-              "nickname": "Example nickname",
               "phone": "01000000000",
               "requiredTermsAgreed": true, "verificationToken": "00000000-0000-4000-8000-000000000001"
             }
@@ -48,12 +47,12 @@ class SignupRequestTest {
 
     @Test
     void rejectsMissingOrMalformedFields() {
-        var request = new SignupRequest("invalid", null, null, " ", "", "phone", null, "KOR",
+        var request = new SignupRequest("invalid", null, null, " ", "phone", null, "KOR",
                 null, false, false, null);
 
         assertThat(FACTORY.getValidator().validate(request))
                 .extracting(violation -> violation.getPropertyPath().toString())
-                .contains("email", "password", "passwordConfirmation", "name", "nickname",
+                .contains("email", "password", "passwordConfirmation", "name",
                         "phone", "countryCode", "requiredTermsAgreed", "verificationToken");
     }
 
@@ -102,6 +101,6 @@ class SignupRequestTest {
 
     private static SignupRequest request(String password, String passwordConfirmation, boolean agreed) {
         return new SignupRequest("example@example.invalid", password, passwordConfirmation,
-                "Example", "Example nickname", "01000000000", null, null, agreed, false, false, UUID.randomUUID());
+                "Example", "01000000000", null, null, agreed, false, false, UUID.randomUUID());
     }
 }

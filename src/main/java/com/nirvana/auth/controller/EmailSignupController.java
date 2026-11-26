@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.nirvana.auth.dto.ApiResponse;
+import com.nirvana.auth.dto.signup.SignupCommand;
 import com.nirvana.auth.dto.signup.SignupRequest;
 import com.nirvana.auth.dto.signup.SignupResponse;
 import com.nirvana.auth.service.SignupService;
@@ -27,6 +28,9 @@ public class EmailSignupController implements EmailSignupApi {
     @PostMapping(path = "/signup", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<SignupResponse> signup(@Valid @RequestBody SignupRequest request) {
-        return ApiResponse.ok(signupService.signup(request));
+        var command = new SignupCommand(request.email(), request.password(), request.phone(),
+                request.name(), request.countryCode(), request.verificationToken());
+        String userUuid = signupService.signup(command);
+        return ApiResponse.ok(new SignupResponse(userUuid));
     }
 }

@@ -40,7 +40,15 @@ Google 계정의 2단계 인증을 활성화하고 [앱 비밀번호](https://su
 | `POST /signup/email-verification/send` | `{"email":"확인할 수 있는 테스트 메일 주소"}` | `204`. 가입할 수 있는 이메일이면 인증번호를 발송합니다. 이미 가입된 이메일은 `409 EMAIL_ALREADY_USED`를 반환합니다. |
 | `POST /signup/email-verification/verify` | `{"email":"발송 요청에 사용한 주소","code":"받은 6자리 코드"}` | `200`, `data.verificationToken` |
 
-인증번호는 발송 후 5분 동안 유효하며, 인증 증빙은 같은 만료 시각을 사용합니다. 로컬 테스트에서는 발송 후 1분이 지나야 재발송할 수 있고, 코드 확인에 5회 실패하면 새 코드를 받아야 합니다. 인증 상태는 Auth 프로세스 메모리에 저장되어 재시작하면 사라집니다. 로컬 Auth는 Gmail SMTP를 사용해 테스트 메일을 실제 주소로 보냅니다. 필수 약관에 동의한 뒤 발송·검증을 진행합니다. `POST /signup`에는 이메일, 인증 증빙(`verificationToken`), 나머지 가입 정보 및 필수 약관 동의 여부를 전달합니다. 가입 시 이메일 중복을 다시 확인합니다. 배포용 Notification 발송과 Member 프로필 연동은 후속 단계입니다.
+인증번호는 발송 후 5분 동안 유효하며, 인증 증빙은 같은 만료 시각을 사용합니다. 로컬 테스트에서는 발송 후 1분이 지나야 재발송할 수 있고, 코드 확인에 5회 실패하면 새 코드를 받아야 합니다. 인증 상태는 Auth 프로세스 메모리에 저장되어 재시작하면 사라집니다. 로컬 Auth는 Gmail SMTP를 사용해 테스트 메일을 실제 주소로 보냅니다. 필수 약관에 동의한 뒤 발송·검증을 진행합니다. `POST /signup`에는 이메일, 인증 증빙(`verificationToken`), 나머지 가입 정보 및 필수 약관 동의 여부를 전달합니다. 가입 시 이메일 중복을 다시 확인합니다. 배포용 Notification 발송은 후속 단계입니다.
+
+가입 요청에는 닉네임을 입력하지 않습니다. Auth는 MySQL에 계정과 `ProfileCreationRequested` 이벤트를 함께 저장한 뒤 `201 Created`를 반환합니다. 응답은 계정 생성 완료를 뜻합니다.
+
+### 가입 후 프로필 생성 이벤트
+
+- 기존 Auth DDL의 `outboxEvents` 테이블을 사용합니다. 발행기는 Kafka 전송에 성공하면 이벤트를 `PUBLISHED`로 표시하고, 실패하면 `nextAttemptAt` 이후 다시 시도합니다.
+- Kafka 연결은 `KAFKA_BOOTSTRAP_SERVERS`, 토픽은 `AUTH_USER_TOPIC`으로 설정합니다. 토픽 기본값은 `nirvana.auth.user`이고 파티션 키는 사용자 UUID입니다.
+- 이벤트에는 `eventId`, `eventType`, `userUuid`, `name`, `countryCode`가 들어갑니다. Member가 이벤트를 받아 기본 닉네임과 프로필을 생성하는 계약입니다.
 
 입력값 검증에 실패하면 `400 INVALID_REQUEST`와 `error.details` 배열을 반환합니다. 각 항목의 `field`는 요청 JSON의 필드 이름이고, `code`는 검증 제약 이름, `message`는 표시할 문구입니다. 예를 들어 필수 약관에 동의하지 않으면 `requiredTermsAgreed`에 `AssertTrue` 오류가 내려갑니다.
 

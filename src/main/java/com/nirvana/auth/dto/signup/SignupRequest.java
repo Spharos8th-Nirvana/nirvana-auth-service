@@ -1,6 +1,8 @@
 package com.nirvana.auth.dto.signup;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -24,7 +26,6 @@ public record SignupRequest(
         String password,
         @JsonProperty(access = JsonProperty.Access.WRITE_ONLY) @NotBlank String passwordConfirmation,
         @NotBlank @Size(max = 100) String name,
-        @NotBlank @Size(max = 30) String nickname,
         @NotBlank @Size(max = 20) @Pattern(regexp = "\\+?[0-9]+") String phone,
         Gender gender,
         @Pattern(regexp = "[a-zA-Z]{2}") String countryCode,
@@ -35,6 +36,8 @@ public record SignupRequest(
         Boolean smsMarketingAgree,
         @JsonProperty(access = JsonProperty.Access.WRITE_ONLY) @NotNull UUID verificationToken
 ) {
+
+    private static final Set<String> COUNTRY_CODES = Set.of(Locale.getISOCountries());
 
     public SignupRequest {
         emailMarketingAgree = Boolean.TRUE.equals(emailMarketingAgree);
@@ -61,6 +64,12 @@ public record SignupRequest(
     @AssertTrue(message = "비밀번호와 비밀번호 확인이 일치하지 않습니다.")
     public boolean isPasswordConfirmed() {
         return password == null || passwordConfirmation == null || password.equals(passwordConfirmation);
+    }
+
+    @JsonIgnore
+    @AssertTrue(message = "지원하는 ISO 국가 코드를 입력해주세요.")
+    public boolean isCountryCodeValid() {
+        return countryCode == null || COUNTRY_CODES.contains(countryCode.toUpperCase(Locale.ROOT));
     }
 
     @Override
