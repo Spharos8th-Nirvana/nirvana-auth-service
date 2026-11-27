@@ -37,7 +37,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
-@ActiveProfiles({"local", "gmail-signup"})
+@ActiveProfiles("local")
 @SpringBootTest(properties = {
     "auth.outbox.publishing-enabled=false",
     "spring.mail.username=sender@example.invalid",

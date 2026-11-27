@@ -1,6 +1,5 @@
 package com.nirvana.auth.controller;
 
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,7 +17,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@Profile("local & gmail-signup")
 @RequiredArgsConstructor
 public class EmailSignupController implements EmailSignupApi {
 

@@ -3,12 +3,10 @@ package com.nirvana.auth.service;
 import com.nirvana.auth.dto.signup.SignupCommand;
 import com.nirvana.auth.exception.EmailAlreadyUsedException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Profile;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 @Service
-@Profile("local & gmail-signup")
 @RequiredArgsConstructor
 public class SignupService {
     private final SignupEmailVerificationService emailVerification;

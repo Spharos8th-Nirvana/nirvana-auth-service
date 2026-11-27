@@ -12,7 +12,6 @@ import java.util.function.Supplier;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Profile;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -22,7 +21,6 @@ import com.nirvana.auth.exception.EmailVerificationException;
 import com.nirvana.auth.exception.EmailVerificationException.Reason;
 
 @Service
-@Profile("local & gmail-signup")
 public class SignupEmailVerificationService {
 
     private static final Duration VALIDITY = Duration.ofMinutes(5);

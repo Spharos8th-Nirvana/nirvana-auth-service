@@ -25,13 +25,12 @@ DB 프로젝트의 `DB/nirvana-app` 폴더에서 `docker compose -f docker-compo
 
 개발과 기여 방법은 [CONTRIBUTING.md](CONTRIBUTING.md)를 참고하세요.
 
-## 로컬 이메일 회원가입 (Gmail)
+## 이메일 회원가입 (Gmail)
 
 Google 계정의 2단계 인증을 활성화하고 [앱 비밀번호](https://support.google.com/mail/answer/185833)를 발급합니다. IntelliJ 실행 설정이나 현재 셸에 아래 환경변수를 설정한 뒤 Auth를 시작합니다. 기존 MySQL 연결 설정도 필요합니다.
 
 | 환경변수 | 값 |
 | --- | --- |
-| `SPRING_PROFILES_ACTIVE` | `local,gmail-signup` |
 | `GMAIL_SMTP_USERNAME` | 발신에 사용할 Gmail 주소 |
 | `GMAIL_SMTP_APP_PASSWORD` | 해당 계정에서 발급한 앱 비밀번호 |
 
@@ -55,5 +54,5 @@ Google 계정의 2단계 인증을 활성화하고 [앱 비밀번호](https://su
 
 ## API 문서
 
-- `local,gmail-signup` 프로필로 실행하면 Swagger UI에서 이메일 인증과 회원가입 API를 확인할 수 있습니다. OpenAPI JSON은 `/v3/api-docs`에서 제공합니다.
+- 이메일 인증과 회원가입 API는 실행 프로필과 관계없이 등록됩니다. `local` 프로필은 기본값이며, 로컬 주소에서 Swagger UI와 `/v3/api-docs`를 제공합니다.
 - `./gradlew restDocs` 또는 Windows에서 `.\gradlew.bat restDocs`를 실행하면 테스트를 거쳐 `build/docs/auth-api.md`를 생성합니다. 요청·응답 예시는 테스트 입력만 사용합니다.
