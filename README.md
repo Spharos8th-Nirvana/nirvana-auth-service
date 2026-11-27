@@ -39,7 +39,7 @@ Google 계정의 2단계 인증을 활성화하고 [앱 비밀번호](https://su
 | `POST /signup/email-verification/send` | `{"email":"확인할 수 있는 테스트 메일 주소"}` | `204`. 가입할 수 있는 이메일이면 인증번호를 발송합니다. 이미 가입된 이메일은 `409 EMAIL_ALREADY_USED`를 반환합니다. |
 | `POST /signup/email-verification/verify` | `{"email":"발송 요청에 사용한 주소","code":"받은 6자리 코드"}` | `200`, `data.verificationToken` |
 
-인증번호는 발송 후 5분 동안 유효하며, 인증 증빙은 같은 만료 시각을 사용합니다. 로컬 테스트에서는 발송 후 1분이 지나야 재발송할 수 있고, 코드 확인에 5회 실패하면 새 코드를 받아야 합니다. 인증 상태는 Auth 프로세스 메모리에 저장되어 재시작하면 사라집니다. 로컬 Auth는 Gmail SMTP를 사용해 테스트 메일을 실제 주소로 보냅니다. 필수 약관에 동의한 뒤 발송·검증을 진행합니다. `POST /signup`에는 이메일, 인증 증빙(`verificationToken`), 나머지 가입 정보 및 필수 약관 동의 여부를 전달합니다. 가입 시 이메일 중복을 다시 확인합니다. 배포용 Notification 발송은 후속 단계입니다.
+인증번호는 발송 후 5분 동안 유효합니다. 가입 토큰은 인증번호 확인에 성공한 시점부터 30분 동안 유효합니다. 로컬 테스트에서는 발송 후 1분이 지나야 재발송할 수 있고, 코드 확인에 5회 실패하면 새 코드를 받아야 합니다. 인증 상태는 Auth 프로세스 메모리에 저장되어 재시작하면 사라집니다. 로컬 Auth는 Gmail SMTP를 사용해 테스트 메일을 실제 주소로 보냅니다. 필수 약관에 동의한 뒤 발송·검증을 진행합니다. `POST /signup`에는 이메일, 인증 증빙(`verificationToken`), 나머지 가입 정보 및 필수 약관 동의 여부를 전달합니다. 가입 시 이메일 중복을 다시 확인합니다. 배포용 Notification 발송은 후속 단계입니다.
 
 가입 요청에는 닉네임을 입력하지 않습니다. Auth는 MySQL에 `PENDING_REGISTRATION` 계정과 `ProfileCreationRequested` 이벤트를 함께 저장한 뒤 `202 Accepted`와 `data.userUuid`를 반환합니다. 응답은 가입 요청 접수를 뜻합니다. Auth는 Member의 `ProfileCreated` 이벤트를 받으면 대기 계정을 `ACTIVE`로 전환합니다.
 

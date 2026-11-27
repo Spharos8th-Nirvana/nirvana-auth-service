@@ -56,13 +56,20 @@ class SignupEmailVerificationServiceTest {
         when(clock.instant()).thenReturn(NOW);
         verification.sendCode(EMAIL);
         verification.sendCode("other@example.invalid");
-        verify(mailSender, times(2)).send(mail.capture());
+        verification.sendCode("expires@example.invalid");
+        verify(mailSender, times(3)).send(mail.capture());
+        when(clock.instant()).thenReturn(NOW.plusSeconds(299));
         var proof = verification.verifyCode(EMAIL, codeIn(mail.getAllValues().get(0)));
+        var expires = verification.verifyCode("expires@example.invalid", codeIn(mail.getAllValues().get(2)));
 
         when(clock.instant()).thenReturn(NOW.plusSeconds(300));
-        expect(Reason.INVALID_VERIFICATION_TOKEN, () -> verification.consumeVerification(EMAIL, proof));
         expect(Reason.INVALID_CODE,
                 () -> verification.verifyCode("other@example.invalid", codeIn(mail.getAllValues().get(1))));
+        when(clock.instant()).thenReturn(NOW.plusSeconds(2098));
+        verification.consumeVerification(EMAIL, proof);
+        when(clock.instant()).thenReturn(NOW.plusSeconds(2099));
+        expect(Reason.INVALID_VERIFICATION_TOKEN,
+                () -> verification.consumeVerification("expires@example.invalid", expires));
     }
 
     @Test

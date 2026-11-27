@@ -19,10 +19,6 @@ public record SignupRequest(
         @NotBlank @Email @Size(max = 255) String email,
         @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
         @NotBlank
-        @Pattern(
-                regexp = "(?s)(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[!@#$%^&*]).*",
-                message = "비밀번호에 영문 대문자, 소문자, 숫자, 특수문자(!@#$%^&*)를 각각 하나 이상 포함해주세요."
-        )
         String password,
         @JsonProperty(access = JsonProperty.Access.WRITE_ONLY) @NotBlank String passwordConfirmation,
         @NotBlank @Size(max = 100) String name,
@@ -38,6 +34,10 @@ public record SignupRequest(
 ) {
 
     private static final Set<String> COUNTRY_CODES = Set.of(Locale.getISOCountries());
+    private static final java.util.regex.Pattern INTERNATIONAL_NAME =
+            java.util.regex.Pattern.compile("[\\p{L}\\p{M}'’.-]+(?: +[\\p{L}\\p{M}'’.-]+)*");
+    private static final java.util.regex.Pattern HANGUL =
+            java.util.regex.Pattern.compile("\\p{IsHangul}");
 
     public SignupRequest {
         emailMarketingAgree = Boolean.TRUE.equals(emailMarketingAgree);
@@ -45,13 +45,40 @@ public record SignupRequest(
     }
 
     @JsonIgnore
-    @AssertTrue(message = "비밀번호는 15~64자여야 합니다.")
+    @AssertTrue(message = "비밀번호는 8~64자여야 합니다.")
     public boolean isPasswordLengthValid() {
         if (password == null || password.isBlank()) {
             return true;
         }
         int length = password.codePointCount(0, password.length());
-        return length >= 15 && length <= 64;
+        return length >= 8 && length <= 64;
+    }
+
+    @JsonIgnore
+    @AssertTrue(message = "비밀번호에 영문 대문자, 소문자, 숫자, 특수문자(!@#$%^&*) 중 3종류 이상을 포함해주세요.")
+    public boolean isPasswordCompositionValid() {
+        if (password == null || password.isBlank()) {
+            return true;
+        }
+        int categories = 0;
+        categories += password.chars().anyMatch(c -> c >= 'A' && c <= 'Z') ? 1 : 0;
+        categories += password.chars().anyMatch(c -> c >= 'a' && c <= 'z') ? 1 : 0;
+        categories += password.chars().anyMatch(c -> c >= '0' && c <= '9') ? 1 : 0;
+        categories += password.chars().anyMatch(c -> "!@#$%^&*".indexOf(c) >= 0) ? 1 : 0;
+        return categories >= 3;
+    }
+
+    @JsonIgnore
+    @AssertTrue(message = "이름은 선택한 국가의 이름 형식에 맞아야 합니다.")
+    public boolean isNameValid() {
+        if (name == null || name.isBlank()) {
+            return true;
+        }
+        if ("KR".equalsIgnoreCase(countryCode)) {
+            return name.matches("[가-힣]+");
+        }
+        return INTERNATIONAL_NAME.matcher(name).matches() && name.codePoints().anyMatch(Character::isLetter)
+                && (countryCode == null || !HANGUL.matcher(name).find());
     }
 
     @JsonIgnore

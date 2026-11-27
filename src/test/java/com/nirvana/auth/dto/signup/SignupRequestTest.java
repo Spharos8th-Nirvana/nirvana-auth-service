@@ -69,14 +69,14 @@ class SignupRequestTest {
     void validatesPasswordCharacterCountAndBcryptByteLimitSeparately() {
         String maxBytes = "Aa1!" + "가".repeat(22) + "aa";
         String overMaxBytes = "Aa1!" + "가".repeat(23);
-        assertThat(FACTORY.getValidator().validate(passwordRequest("Aa1!" + "a".repeat(11)))).isEmpty();
+        assertThat(FACTORY.getValidator().validate(passwordRequest("Aa1!" + "a".repeat(4)))).isEmpty();
         assertThat(FACTORY.getValidator().validate(passwordRequest("Aa1!" + "a".repeat(60)))).isEmpty();
         assertThat(FACTORY.getValidator().validate(passwordRequest(maxBytes))).isEmpty();
 
-        assertThat(FACTORY.getValidator().validate(passwordRequest("Aa1!" + "a".repeat(10))))
-                .extracting(ConstraintViolation::getMessage).containsExactly("비밀번호는 15~64자여야 합니다.");
+        assertThat(FACTORY.getValidator().validate(passwordRequest("Aa1!" + "a".repeat(3))))
+                .extracting(ConstraintViolation::getMessage).containsExactly("비밀번호는 8~64자여야 합니다.");
         assertThat(FACTORY.getValidator().validate(passwordRequest("Aa1!" + "a".repeat(61))))
-                .extracting(ConstraintViolation::getMessage).containsExactly("비밀번호는 15~64자여야 합니다.");
+                .extracting(ConstraintViolation::getMessage).containsExactly("비밀번호는 8~64자여야 합니다.");
         assertThat(FACTORY.getValidator().validate(passwordRequest(overMaxBytes)))
                 .extracting(ConstraintViolation::getMessage).containsExactly("비밀번호는 UTF-8 기준 72바이트 이하여야 합니다.");
     }
@@ -89,10 +89,31 @@ class SignupRequestTest {
             "MissingSymbol123",
             "UnlistedSymbol1?"
     })
-    void rejectsPasswordsMissingARequiredCharacterType(String password) {
+    void acceptsPasswordsWithThreeCharacterTypes(String password) {
+        assertThat(FACTORY.getValidator().validate(passwordRequest(password))).isEmpty();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"lowercase1", "UPPERCASE!", "lowercase?"})
+    void rejectsPasswordsWithFewerThanThreeCharacterTypes(String password) {
         assertThat(FACTORY.getValidator().validate(passwordRequest(password)))
                 .extracting(violation -> violation.getPropertyPath().toString())
-                .containsExactly("password");
+                .containsExactly("passwordCompositionValid");
+    }
+
+    @Test
+    void appliesCountrySpecificNameRules() {
+        assertThat(nameRequest("홍길동", "kr").isNameValid()).isTrue();
+        assertThat(nameRequest("홍 길동", "KR").isNameValid()).isFalse();
+        assertThat(nameRequest("José O’Neill Jr.", "US").isNameValid()).isTrue();
+        assertThat(nameRequest("홍길동", "US").isNameValid()).isFalse();
+        assertThat(nameRequest("Example1", null).isNameValid()).isFalse();
+        assertThat(nameRequest("Example😀", "US").isNameValid()).isFalse();
+    }
+
+    private static SignupRequest nameRequest(String name, String countryCode) {
+        return new SignupRequest("example@example.invalid", PASSWORD, PASSWORD, name,
+                "01000000000", null, countryCode, true, false, false, UUID.randomUUID());
     }
 
     private static SignupRequest passwordRequest(String password) {

@@ -23,7 +23,8 @@ import com.nirvana.auth.exception.EmailVerificationException.Reason;
 @Service
 public class SignupEmailVerificationService {
 
-    private static final Duration VALIDITY = Duration.ofMinutes(5);
+    private static final Duration CODE_VALIDITY = Duration.ofMinutes(5);
+    private static final Duration TOKEN_VALIDITY = Duration.ofMinutes(30);
     private static final Duration RESEND_INTERVAL = Duration.ofMinutes(1);
     private static final int MAX_ATTEMPTS = 5;
 
@@ -48,9 +49,11 @@ public class SignupEmailVerificationService {
     public synchronized void sendCode(String email) {
         String key = emailKey(email);
         Instant now = clock.instant();
-        challenges.values().removeIf(challenge -> !challenge.expiresAt.isAfter(now));
+        challenges.values().removeIf(
+                challenge -> !challenge.inUse && !challenge.codeExpiresAt.isAfter(now)
+                        && !challenge.tokenIsValidAt(now));
         Challenge current = challenges.get(key);
-        if (current != null && now.isBefore(current.resendAt)) {
+        if (current != null && (current.inUse || now.isBefore(current.resendAt))) {
             throw new EmailVerificationException(Reason.RETRY_LATER);
         }
 
@@ -66,12 +69,18 @@ public class SignupEmailVerificationService {
             throw new EmailVerificationException(Reason.DELIVERY_FAILED, exception);
         }
         Instant sentAt = clock.instant();
-        challenges.put(key, new Challenge(code, sentAt.plus(VALIDITY), sentAt.plus(RESEND_INTERVAL)));
+        var next = new Challenge(code, sentAt.plus(CODE_VALIDITY), sentAt.plus(RESEND_INTERVAL));
+        if (current != null && current.tokenIsValidAt(sentAt)) {
+            next.verificationToken = current.verificationToken;
+            next.tokenExpiresAt = current.tokenExpiresAt;
+        }
+        challenges.put(key, next);
     }
 
     public synchronized UUID verifyCode(String email, String code) {
         Challenge challenge = challenges.get(emailKey(email));
-        if (challenge == null || !challenge.expiresAt.isAfter(clock.instant())
+        Instant now = clock.instant();
+        if (challenge == null || challenge.inUse || !challenge.codeExpiresAt.isAfter(now)
                 || challenge.code == null || challenge.failedAttempts >= MAX_ATTEMPTS) {
             throw new EmailVerificationException(Reason.INVALID_CODE);
         }
@@ -81,6 +90,7 @@ public class SignupEmailVerificationService {
         }
         challenge.code = null;
         challenge.verificationToken = UUID.randomUUID();
+        challenge.tokenExpiresAt = now.plus(TOKEN_VALIDITY);
         return challenge.verificationToken;
     }
 
@@ -88,15 +98,35 @@ public class SignupEmailVerificationService {
         withVerifiedEmail(email, token, () -> null);
     }
 
-    synchronized <T> T withVerifiedEmail(String email, UUID token, Supplier<T> action) {
+    <T> T withVerifiedEmail(String email, UUID token, Supplier<T> action) {
+        Challenge challenge = reserveVerification(email, token);
+        boolean completed = false;
+        try {
+            T result = action.get();
+            completed = true;
+            return result;
+        } finally {
+            finishVerification(challenge, completed);
+        }
+    }
+
+    private synchronized Challenge reserveVerification(String email, UUID token) {
         Challenge challenge = challenges.get(emailKey(email));
-        if (challenge == null || challenge.verificationToken == null
-                || !challenge.verificationToken.equals(token) || !challenge.expiresAt.isAfter(clock.instant())) {
+        if (challenge == null || challenge.inUse || !challenge.tokenIsValidAt(clock.instant())
+                || !challenge.verificationToken.equals(token)) {
             throw new EmailVerificationException(Reason.INVALID_VERIFICATION_TOKEN);
         }
-        T result = action.get();
-        challenge.verificationToken = null;
-        return result;
+        challenge.inUse = true;
+        return challenge;
+    }
+
+    private synchronized void finishVerification(Challenge challenge, boolean completed) {
+        if (completed) {
+            challenge.verificationToken = null;
+            challenge.tokenExpiresAt = null;
+            challenge.code = null;
+        }
+        challenge.inUse = false;
     }
 
     private static String emailKey(String email) {
@@ -106,15 +136,21 @@ public class SignupEmailVerificationService {
     private static final class Challenge {
 
         private String code;
-        private final Instant expiresAt;
+        private final Instant codeExpiresAt;
         private final Instant resendAt;
         private int failedAttempts;
         private UUID verificationToken;
+        private Instant tokenExpiresAt;
+        private boolean inUse;
 
-        private Challenge(String code, Instant expiresAt, Instant resendAt) {
+        private Challenge(String code, Instant codeExpiresAt, Instant resendAt) {
             this.code = code;
-            this.expiresAt = expiresAt;
+            this.codeExpiresAt = codeExpiresAt;
             this.resendAt = resendAt;
+        }
+
+        private boolean tokenIsValidAt(Instant now) {
+            return verificationToken != null && tokenExpiresAt.isAfter(now);
         }
     }
 }

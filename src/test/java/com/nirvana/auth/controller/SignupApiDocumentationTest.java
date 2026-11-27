@@ -65,7 +65,7 @@ class SignupApiDocumentationTest {
               "email": "member@example.invalid",
               "password": "ExampleSignup1234!",
               "passwordConfirmation": "ExampleSignup1234!",
-              "name": "테스트 회원",
+              "name": "테스트회원",
               "phone": "01000000000",
               "requiredTermsAgreed": true,
               "verificationToken": "5d6acd75-b9bd-4dbc-850a-247fc5c0b549"
