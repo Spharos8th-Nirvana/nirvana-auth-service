@@ -33,13 +33,15 @@ Google 계정의 2단계 인증을 활성화하고 [앱 비밀번호](https://su
 | --- | --- |
 | `GMAIL_SMTP_USERNAME` | 발신에 사용할 Gmail 주소 |
 | `GMAIL_SMTP_APP_PASSWORD` | 해당 계정에서 발급한 앱 비밀번호 |
+| `REDIS_HOST`, `REDIS_PORT` | 가입 이메일 인증 상태를 저장하는 Redis 주소. 기본값은 `127.0.0.1:6379` |
+| `REDIS_PASSWORD` | Redis 인증을 사용하는 환경에 설정 |
 
 | 요청 | JSON 본문 | 성공 응답 |
 | --- | --- | --- |
 | `POST /signup/email-verification/send` | `{"email":"확인할 수 있는 테스트 메일 주소"}` | `204`. 가입할 수 있는 이메일이면 인증번호를 발송합니다. 이미 가입된 이메일은 `409 EMAIL_ALREADY_USED`를 반환합니다. |
 | `POST /signup/email-verification/verify` | `{"email":"발송 요청에 사용한 주소","code":"받은 6자리 코드"}` | `200`, `data.verificationToken` |
 
-인증번호는 발송 후 5분 동안 유효합니다. 가입 토큰은 인증번호 확인에 성공한 시점부터 30분 동안 유효합니다. 로컬 테스트에서는 발송 후 1분이 지나야 재발송할 수 있고, 코드 확인에 5회 실패하면 새 코드를 받아야 합니다. 인증 상태는 Auth 프로세스 메모리에 저장되어 재시작하면 사라집니다. 로컬 Auth는 Gmail SMTP를 사용해 테스트 메일을 실제 주소로 보냅니다. 필수 약관에 동의한 뒤 발송·검증을 진행합니다. `POST /signup`에는 이메일, 인증 증빙(`verificationToken`), 나머지 가입 정보 및 필수 약관 동의 여부를 전달합니다. 가입 시 이메일 중복을 다시 확인합니다. 배포용 Notification 발송은 후속 단계입니다.
+인증번호는 발송 후 5분 동안 유효합니다. 가입 토큰은 인증번호 확인에 성공한 시점부터 30분 동안 유효합니다. 로컬 테스트에서는 발송 후 1분이 지나야 재발송할 수 있고, 코드 확인에 5회 실패하면 새 코드를 받아야 합니다. 인증 상태는 Redis에 저장합니다. Redis에 접근할 수 없으면 가입 인증은 `503 EMAIL_VERIFICATION_UNAVAILABLE`로 응답합니다. 로컬 Auth는 Gmail SMTP를 사용해 테스트 메일을 실제 주소로 보냅니다. 필수 약관에 동의한 뒤 발송·검증을 진행합니다. `POST /signup`에는 이메일, 인증 증빙(`verificationToken`), 나머지 가입 정보 및 필수 약관 동의 여부를 전달합니다. 가입 시 이메일 중복을 다시 확인합니다. 배포용 Notification 발송은 후속 단계입니다.
 
 가입 요청에는 닉네임을 입력하지 않습니다. Auth는 MySQL에 `PENDING_REGISTRATION` 계정과 `ProfileCreationRequested` 이벤트를 함께 저장한 뒤 `202 Accepted`와 `data.userUuid`를 반환합니다. 응답은 가입 요청 접수를 뜻합니다. Auth는 Member의 `ProfileCreated` 이벤트를 받으면 대기 계정을 `ACTIVE`로 전환합니다.
 
@@ -56,3 +58,5 @@ Google 계정의 2단계 인증을 활성화하고 [앱 비밀번호](https://su
 
 - 이메일 인증과 회원가입 API는 실행 프로필과 관계없이 등록됩니다. `local` 프로필은 기본값이며, 로컬 주소에서 Swagger UI와 `/v3/api-docs`를 제공합니다.
 - `./gradlew restDocs` 또는 Windows에서 `.\gradlew.bat restDocs`를 실행하면 테스트를 거쳐 `build/docs/auth-api.md`를 생성합니다. 요청·응답 예시는 테스트 입력만 사용합니다.
+
+로컬 Redis를 띄운 뒤 환경변수 AUTH_TEST_REDIS_PORT에 그 포트를 지정하고 Gradle uild를 실행하면 Redis 가입 인증 통합 테스트도 실행됩니다.

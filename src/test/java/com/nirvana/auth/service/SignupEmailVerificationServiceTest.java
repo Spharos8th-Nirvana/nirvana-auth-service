@@ -5,124 +5,132 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
-import java.time.Clock;
+import com.nirvana.auth.exception.EmailVerificationException;
+import com.nirvana.auth.exception.EmailVerificationException.Reason;
+import com.nirvana.auth.repository.SignupVerificationRedisRepository;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-
+import java.util.Base64;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.mockito.ArgumentCaptor;
+import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.mail.MailSendException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 
-import com.nirvana.auth.exception.EmailVerificationException;
-import com.nirvana.auth.exception.EmailVerificationException.Reason;
-
+@EnabledIfEnvironmentVariable(named = "AUTH_TEST_REDIS_PORT", matches = "[0-9]+")
 class SignupEmailVerificationServiceTest {
+    private final String email = UUID.randomUUID() + "@example.invalid";
+    private final JavaMailSender mailer = mock(JavaMailSender.class);
+    private LettuceConnectionFactory connection;
+    private StringRedisTemplate redis;
+    private SignupEmailVerificationService verification;
 
-    private static final String EMAIL = "tester@example.invalid";
-    private static final String SENDER_EMAIL = "sender@example.invalid";
-    private static final Instant NOW = Instant.parse("2026-11-24T00:00:00Z");
-
-    private final JavaMailSender mailSender = mock(JavaMailSender.class);
-    private final Clock clock = mock(Clock.class);
-    private final SignupEmailVerificationService verification =
-            new SignupEmailVerificationService(mailSender, SENDER_EMAIL, clock);
-    private final ArgumentCaptor<SimpleMailMessage> mail = ArgumentCaptor.forClass(SimpleMailMessage.class);
-
-    @Test
-    void checksCodeAndConsumesProofExactlyOnceForItsEmail() {
-        when(clock.instant()).thenReturn(NOW);
-        verification.sendCode(EMAIL);
-        verify(mailSender).send(mail.capture());
-        assertThat(mail.getValue().getFrom()).isEqualTo(SENDER_EMAIL);
-        assertThat(mail.getValue().getTo()).containsExactly(EMAIL);
-
-        String code = codeIn(mail.getValue());
-        var token = verification.verifyCode(EMAIL, code);
-        assertThat(token).isNotNull();
-        expect(Reason.INVALID_CODE, () -> verification.verifyCode(EMAIL, code));
-        expect(Reason.INVALID_VERIFICATION_TOKEN,
-                () -> verification.consumeVerification("other@example.invalid", token));
-        verification.consumeVerification(EMAIL, token);
-        expect(Reason.INVALID_VERIFICATION_TOKEN, () -> verification.consumeVerification(EMAIL, token));
+    @BeforeEach
+    void connect() {
+        connection = new LettuceConnectionFactory("127.0.0.1", Integer.parseInt(System.getenv("AUTH_TEST_REDIS_PORT")));
+        connection.afterPropertiesSet();
+        redis = new StringRedisTemplate(connection);
+        verification = newService();
     }
 
-    @Test
-    void rejectsExpiredCodeAndProof() {
-        when(clock.instant()).thenReturn(NOW);
-        verification.sendCode(EMAIL);
-        verification.sendCode("other@example.invalid");
-        verification.sendCode("expires@example.invalid");
-        verify(mailSender, times(3)).send(mail.capture());
-        when(clock.instant()).thenReturn(NOW.plusSeconds(299));
-        var proof = verification.verifyCode(EMAIL, codeIn(mail.getAllValues().get(0)));
-        var expires = verification.verifyCode("expires@example.invalid", codeIn(mail.getAllValues().get(2)));
-
-        when(clock.instant()).thenReturn(NOW.plusSeconds(300));
-        expect(Reason.INVALID_CODE,
-                () -> verification.verifyCode("other@example.invalid", codeIn(mail.getAllValues().get(1))));
-        when(clock.instant()).thenReturn(NOW.plusSeconds(2098));
-        verification.consumeVerification(EMAIL, proof);
-        when(clock.instant()).thenReturn(NOW.plusSeconds(2099));
-        expect(Reason.INVALID_VERIFICATION_TOKEN,
-                () -> verification.consumeVerification("expires@example.invalid", expires));
-    }
-
-    @Test
-    void limitsCodeAttemptsAndResendRequests() {
-        when(clock.instant()).thenReturn(NOW);
-        verification.sendCode(EMAIL);
-        verify(mailSender).send(mail.capture());
-        expect(Reason.RETRY_LATER, () -> verification.sendCode(EMAIL));
-
-        for (int attempt = 0; attempt < 5; attempt++) {
-            expect(Reason.INVALID_CODE, () -> verification.verifyCode(EMAIL, "000000"));
+    @AfterEach
+    void disconnect() {
+        try {
+            redis.delete(List.of(key("code"), key("token"), key("resend"), key("lease")));
+        } finally {
+            connection.destroy();
         }
-        expect(Reason.INVALID_CODE, () -> verification.verifyCode(EMAIL, codeIn(mail.getValue())));
-
-        when(clock.instant()).thenReturn(NOW.plusSeconds(60));
-        verification.sendCode(EMAIL);
-        verify(mailSender, times(2)).send(mail.capture());
-        assertThat(verification.verifyCode(EMAIL, codeIn(mail.getValue()))).isNotNull();
     }
 
     @Test
-    void failedDeliveryDoesNotCreateAChallengeOrPreventRetry() {
-        when(clock.instant()).thenReturn(NOW);
-        doThrow(new MailSendException("test delivery failure")).doNothing()
-                .when(mailSender).send(any(SimpleMailMessage.class));
+    void sharesCodeAndTokenAcrossServicesWithSeparateTtls() {
+        String code = sendCode();
+        assertThat(redis.getExpire(key("code"), TimeUnit.SECONDS)).isBetween(295L, 300L);
+        var second = newService();
+        UUID token = second.verifyCode(email, code);
+        assertThat(redis.getExpire(key("token"), TimeUnit.SECONDS)).isBetween(1795L, 1800L);
+        expect(Reason.INVALID_CODE, () -> verification.verifyCode(email, code));
+        expect(Reason.INVALID_VERIFICATION_TOKEN, () -> verification.consumeVerification("other@example.invalid", token));
 
-        expect(Reason.DELIVERY_FAILED, () -> verification.sendCode(EMAIL));
-        verify(mailSender).send(mail.capture());
-        expect(Reason.INVALID_CODE, () -> verification.verifyCode(EMAIL, codeIn(mail.getValue())));
-        verification.sendCode(EMAIL);
+        verification.consumeVerification(email, token);
+        expect(Reason.INVALID_VERIFICATION_TOKEN, () -> second.consumeVerification(email, token));
     }
 
     @Test
-    void savingFailureLeavesProofAvailableForRetry() {
-        when(clock.instant()).thenReturn(NOW);
-        verification.sendCode(EMAIL);
-        verify(mailSender).send(mail.capture());
-        var token = verification.verifyCode(EMAIL, codeIn(mail.getValue()));
+    void rejectsExpiredCredentials() {
+        String code = sendCode();
+        redis.expireAt(key("code"), Instant.EPOCH);
+        expect(Reason.INVALID_CODE, () -> verification.verifyCode(email, code));
 
-        assertThatThrownBy(() -> verification.withVerifiedEmail(EMAIL, token, () -> {
+        redis.expireAt(key("resend"), Instant.EPOCH);
+        UUID token = verification.verifyCode(email, sendCode());
+        redis.expireAt(key("token"), Instant.EPOCH);
+        expect(Reason.INVALID_VERIFICATION_TOKEN, () -> verification.consumeVerification(email, token));
+    }
+
+    @Test
+    void enforcesRetryLimitsAcrossServices() {
+        String code = sendCode();
+        var second = newService();
+        expect(Reason.RETRY_LATER, () -> second.sendCode(email));
+        for (int attempt = 0; attempt < 5; attempt++) {
+            expect(Reason.INVALID_CODE, () -> second.verifyCode(email, "000000"));
+        }
+        expect(Reason.INVALID_CODE, () -> verification.verifyCode(email, code));
+    }
+
+    @Test
+    void releasesReservationWhenDeliveryFails() {
+        doThrow(new MailSendException("delivery failed")).doNothing().when(mailer).send(any(SimpleMailMessage.class));
+        expect(Reason.DELIVERY_FAILED, () -> verification.sendCode(email));
+        assertThat(redis.hasKey(key("code"))).isFalse();
+        assertThat(redis.hasKey(key("lease"))).isFalse();
+        verification.sendCode(email);
+    }
+
+    @Test
+    void blocksConcurrentUseAndAllowsRetryAfterSaveFailure() {
+        UUID token = verification.verifyCode(email, sendCode());
+        var second = newService();
+        assertThatThrownBy(() -> verification.withVerifiedEmail(email, token, () -> {
+            expect(Reason.INVALID_VERIFICATION_TOKEN, () -> second.consumeVerification(email, token));
             throw new IllegalStateException("save failed");
         })).isInstanceOf(IllegalStateException.class);
 
-        assertThat(verification.withVerifiedEmail(EMAIL, token, () -> "saved")).isEqualTo("saved");
-        expect(Reason.INVALID_VERIFICATION_TOKEN, () -> verification.consumeVerification(EMAIL, token));
+        second.consumeVerification(email, token);
+        expect(Reason.INVALID_VERIFICATION_TOKEN, () -> verification.consumeVerification(email, token));
     }
 
-    private static String codeIn(SimpleMailMessage message) {
-        return message.getText().lines().findFirst().orElseThrow().substring("인증번호: ".length());
+    private SignupEmailVerificationService newService() {
+        return new SignupEmailVerificationService(mailer, "sender@example.invalid",
+                new SignupVerificationRedisRepository(redis));
     }
 
-    private static void expect(Reason reason, Runnable operation) {
-        assertThatThrownBy(operation::run).isInstanceOfSatisfying(
+    private String sendCode() {
+        org.mockito.Mockito.clearInvocations(mailer);
+        verification.sendCode(email);
+        var message = ArgumentCaptor.forClass(SimpleMailMessage.class);
+        verify(mailer).send(message.capture());
+        return message.getValue().getText().lines().findFirst().orElseThrow().substring("인증번호: ".length());
+    }
+
+    private String key(String field) {
+        String encoded = Base64.getUrlEncoder().withoutPadding().encodeToString(email.getBytes(StandardCharsets.UTF_8));
+        return "auth:signup:{" + encoded + "}:" + field;
+    }
+
+    private static void expect(Reason reason, Runnable action) {
+        assertThatThrownBy(action::run).isInstanceOfSatisfying(
                 EmailVerificationException.class, error -> assertThat(error.reason()).isEqualTo(reason));
     }
 }

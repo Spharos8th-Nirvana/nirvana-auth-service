@@ -27,7 +27,7 @@ public class UserAccountService {
     private final ObjectMapper json;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-    @Transactional
+    @Transactional(timeout = 30)
     public String register(SignupCommand command) {
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         UserAccount account = UserAccount.generalBuilder()
