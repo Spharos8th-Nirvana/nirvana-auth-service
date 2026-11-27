@@ -1,6 +1,14 @@
 server:
   port: ${SERVER_PORT:8081}
 
+auth:
+  profile-completion:
+    topic: ${MEMBER_PROFILE_COMPLETED_TOPIC:nirvana.member.profile-created}
+    group-id: ${AUTH_PROFILE_COMPLETION_GROUP_ID:auth-profile-completion}
+  outbox:
+    profile-topic: ${AUTH_USER_TOPIC:nirvana.auth.user}
+    publish-interval-ms: ${OUTBOX_PUBLISH_INTERVAL_MS:1000}
+
 spring:
   application:
     name: auth-service
@@ -8,6 +16,36 @@ spring:
     url: jdbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:13306}/nirvana_auth
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD}
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${GMAIL_SMTP_USERNAME:}
+    password: ${GMAIL_SMTP_APP_PASSWORD:}
+    properties:
+      "[mail.smtp.auth]": true
+      "[mail.smtp.starttls.enable]": true
+      "[mail.smtp.starttls.required]": true
+      "[mail.smtp.ssl.checkserveridentity]": true
+      "[mail.smtp.connectiontimeout]": 5000
+      "[mail.smtp.timeout]": 5000
+      "[mail.smtp.writetimeout]": 5000
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    listener:
+      ack-mode: record
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      properties:
+        "[max.block.ms]": 2000
+        "[request.timeout.ms]": 3000
+        "[delivery.timeout.ms]": 6000
   profiles:
     default: local
   cloud:
@@ -26,6 +64,9 @@ springdoc:
   swagger-ui:
     enabled: false
 ---
+server:
+  address: 127.0.0.1
+
 spring:
   config:
     activate:
