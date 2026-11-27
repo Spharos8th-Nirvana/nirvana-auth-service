@@ -2,6 +2,9 @@ server:
   port: ${SERVER_PORT:8081}
 
 auth:
+  profile-completion:
+    topic: ${MEMBER_PROFILE_COMPLETED_TOPIC:nirvana.member.profile-created}
+    group-id: ${AUTH_PROFILE_COMPLETION_GROUP_ID:auth-profile-completion}
   outbox:
     profile-topic: ${AUTH_USER_TOPIC:nirvana.auth.user}
     publish-interval-ms: ${OUTBOX_PUBLISH_INTERVAL_MS:1000}
@@ -15,6 +18,13 @@ spring:
     password: ${DB_PASSWORD}
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    listener:
+      ack-mode: record
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer

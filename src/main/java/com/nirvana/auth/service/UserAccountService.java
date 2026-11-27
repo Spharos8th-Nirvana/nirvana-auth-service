@@ -51,6 +51,11 @@ public class UserAccountService {
                 .map(account -> new AccountDetails(account.getUuid(), account.getEmail(), account.getPhone()));
     }
 
+    @Transactional
+    public void activateRegistration(UUID userUuid) {
+        accounts.updateStatus(userUuid.toString(), UserAccount.Status.PENDING_REGISTRATION, UserAccount.Status.ACTIVE);
+    }
+
     public boolean isEmailAvailable(String email) {
         return !accounts.existsByEmailActive(email);
     }
