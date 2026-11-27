@@ -156,7 +156,7 @@ class SignupApiDocumentationTest {
         when(accounts.isEmailAvailable(EMAIL)).thenReturn(true);
         doReturn(ACCOUNT_UUID).when(signup).signup(any());
 
-        submit(SIGNUP, SIGNUP_BODY).andExpect(status().isCreated())
+        submit(SIGNUP, SIGNUP_BODY).andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.data.userUuid").value(ACCOUNT_UUID))
                 .andDo(document("auth/signup/created"));
     }
@@ -198,7 +198,7 @@ class SignupApiDocumentationTest {
                 .andExpect(jsonPath("$.paths['" + SEND + "'].post.responses['204'].content").doesNotExist())
                 .andExpect(jsonPath("$.paths['" + SEND + "'].post.responses['429']").exists())
                 .andExpect(jsonPath("$.paths['" + VERIFY + "'].post.responses['200'].content['application/json']").exists())
-                .andExpect(jsonPath("$.paths['" + SIGNUP + "'].post.responses['201'].content['application/json']").exists())
+                .andExpect(jsonPath("$.paths['" + SIGNUP + "'].post.responses['202'].content['application/json']").exists())
                 .andExpect(jsonPath("$.paths['" + SIGNUP + "'].post.responses['409']").exists());
     }
 

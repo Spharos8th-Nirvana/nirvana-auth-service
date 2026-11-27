@@ -71,7 +71,7 @@ public class UserAccount {
         account.requiredTermsAgreedAt =
                 Objects.requireNonNull(requiredTermsAgreedAt, "requiredTermsAgreedAt");
         account.signupType = SignupType.GENERAL;
-        account.status = Status.ACTIVE;
+        account.status = Status.PENDING_REGISTRATION;
         return account;
     }
 
@@ -80,6 +80,6 @@ public class UserAccount {
     }
 
     public enum Status {
-        ACTIVE, INACTIVE, SUSPENDED, WITHDRAWN_PENDING, WITHDRAWN
+        ACTIVE, INACTIVE, SUSPENDED, WITHDRAWN_PENDING, WITHDRAWN, PENDING_REGISTRATION
     }
 }

@@ -26,7 +26,7 @@ public class EmailSignupController implements EmailSignupApi {
 
     @Override
     @PostMapping(path = "/signup", produces = MediaType.APPLICATION_JSON_VALUE)
-    @ResponseStatus(HttpStatus.CREATED)
+    @ResponseStatus(HttpStatus.ACCEPTED)
     public ApiResponse<SignupResponse> signup(@Valid @RequestBody SignupRequest request) {
         var command = new SignupCommand(request.email(), request.password(), request.phone(),
                 request.name(), request.countryCode(), request.verificationToken());
