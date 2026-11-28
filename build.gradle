@@ -22,6 +22,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-mail'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.springframework.boot:spring-boot-starter-kafka'
     implementation 'org.springframework.security:spring-security-crypto'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
@@ -47,6 +48,7 @@ def snippetsDir = layout.buildDirectory.dir('generated-snippets')
 
 tasks.named('test') {
     useJUnitPlatform()
+    inputs.property('authTestRedisPort', providers.environmentVariable('AUTH_TEST_REDIS_PORT').orElse(''))
     outputs.dir(snippetsDir)
 }
 

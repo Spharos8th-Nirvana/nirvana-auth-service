@@ -21,7 +21,8 @@ public class EmailVerificationException extends AuthException {
         INVALID_CODE(ErrorCode.INVALID_EMAIL_VERIFICATION_CODE),
         INVALID_VERIFICATION_TOKEN(ErrorCode.INVALID_EMAIL_VERIFICATION_TOKEN),
         RETRY_LATER(ErrorCode.EMAIL_RESEND_TOO_SOON),
-        DELIVERY_FAILED(ErrorCode.EMAIL_DELIVERY_FAILED);
+        DELIVERY_FAILED(ErrorCode.EMAIL_DELIVERY_FAILED),
+        STORAGE_UNAVAILABLE(ErrorCode.EMAIL_VERIFICATION_UNAVAILABLE);
 
         private final ErrorCode errorCode;
 

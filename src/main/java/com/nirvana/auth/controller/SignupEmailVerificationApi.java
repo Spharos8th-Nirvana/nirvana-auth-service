@@ -20,7 +20,7 @@ interface SignupEmailVerificationApi {
                 content = @Content(mediaType = "application/json", schema = @Schema(implementation = SignupErrorResponse.class))),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "429", description = "EMAIL_RESEND_TOO_SOON",
                 content = @Content(mediaType = "application/json", schema = @Schema(implementation = SignupErrorResponse.class))),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "503", description = "EMAIL_DELIVERY_FAILED",
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "503", description = "EMAIL_DELIVERY_FAILED 또는 EMAIL_VERIFICATION_UNAVAILABLE",
                 content = @Content(mediaType = "application/json", schema = @Schema(implementation = SignupErrorResponse.class))),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "INTERNAL_SERVER_ERROR",
                 content = @Content(mediaType = "application/json", schema = @Schema(implementation = SignupErrorResponse.class)))
@@ -32,6 +32,8 @@ interface SignupEmailVerificationApi {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "이메일 인증 증빙 발급",
                 useReturnTypeSchema = true),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "INVALID_REQUEST, INVALID_JSON 또는 INVALID_EMAIL_VERIFICATION_CODE",
+                content = @Content(mediaType = "application/json", schema = @Schema(implementation = SignupErrorResponse.class))),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "503", description = "EMAIL_VERIFICATION_UNAVAILABLE",
                 content = @Content(mediaType = "application/json", schema = @Schema(implementation = SignupErrorResponse.class))),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "INTERNAL_SERVER_ERROR",
                 content = @Content(mediaType = "application/json", schema = @Schema(implementation = SignupErrorResponse.class)))

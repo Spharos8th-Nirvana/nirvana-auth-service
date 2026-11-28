@@ -17,6 +17,8 @@ interface EmailSignupApi {
                 content = @Content(mediaType = "application/json", schema = @Schema(implementation = SignupErrorResponse.class))),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "EMAIL_ALREADY_USED",
                 content = @Content(mediaType = "application/json", schema = @Schema(implementation = SignupErrorResponse.class))),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "503", description = "EMAIL_VERIFICATION_UNAVAILABLE",
+                content = @Content(mediaType = "application/json", schema = @Schema(implementation = SignupErrorResponse.class))),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "INTERNAL_SERVER_ERROR",
                 content = @Content(mediaType = "application/json", schema = @Schema(implementation = SignupErrorResponse.class)))
     })
